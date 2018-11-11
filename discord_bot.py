@@ -63,7 +63,7 @@ async def on_message(message):
             await client.send_message(message.channel, create_table(table_text))
         except Exception as e:
             await client.send_message(message.channel, "Error creating table: " + str(e))
-    elif message.content == "!members":
+    elif message.content == "!members" or message.content = "!posse":
         table_text = "MEMBER_NAME,JOINED_ON,STATUS"
         for member in message.server.members:
             # mlookup = discord.utils.find(lambda m: m.id == member.id, message.server.members)
