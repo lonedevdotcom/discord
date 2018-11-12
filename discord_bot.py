@@ -51,7 +51,7 @@ async def on_ready():
         print("Servers:")
         for server in client.servers:
             print("    {0} --> {1}".format(server.id, server.name))
-            last_server_update[server.id] = int(time.time())
+            # last_server_update[server.id] = int(time.time())
     except Exception as e:
         print(e)
 
@@ -63,10 +63,9 @@ async def on_message(message):
             await client.send_message(message.channel, create_table(table_text))
         except Exception as e:
             await client.send_message(message.channel, "Error creating table: " + str(e))
-    elif message.content == "!members" or message.content = "!posse":
+    elif message.content == "!members" or message.content == "!posse":
         table_text = "MEMBER_NAME,JOINED_ON,STATUS"
         for member in message.server.members:
-            # mlookup = discord.utils.find(lambda m: m.id == member.id, message.server.members)
             table_text += "|{0},{1},{2}".format(member.name, member.joined_at.strftime("%Y-%m-%d %H:%M:%S"), member.status)
         await client.send_message(message.channel, create_table(table_text))
         print(message.server.default_role.mention)
@@ -98,7 +97,9 @@ async def on_message(message):
     elif message.content.startswith('!setalias'):
         usage = "```USAGE: !setalias <member> <xbox|ps4|pc> <alias>```"
         params = message.content.split()
-        if len(params) != 4:
+        if not message.author.server_permissions.administrator:
+            await client.send_message(message.channel, "Sorry " + message.author.mention + ", only administrators can do this :frowning:")
+        elif len(params) != 4:
             await client.send_message(message.channel, usage)
         elif discord.utils.find(lambda m: m.mention == params[1], message.server.members) is None:
             await client.send_message(message.channel, "Could not find user " + params[1])
@@ -113,7 +114,9 @@ async def on_message(message):
     elif message.content.startswith('!rmalias'):
         usage = "```USAGE: !rmalias <member> <xbox|ps4|pc|all>```"
         params = message.content.split()
-        if len(params) != 3:
+        if not message.author.server_permissions.administrator:
+            await client.send_message(message.channel, "Sorry " + message.author.mention + ", only administrators can do this :frowning:")
+        elif len(params) != 3:
             await client.send_message(message.channel, usage)
         elif discord.utils.find(lambda m: m.mention == params[1], message.server.members) is None:
             await client.send_message(message.channel, "Could not find user '" + params[1] + "'")
@@ -136,7 +139,8 @@ async def maintenance_loop():
     keep_running = True
 
     while keep_running:
-        await asyncio.sleep(30)
+        await asyncio.sleep(60)
+        print("Maintenance run " + str(datetime.datetime.now()), flush=True)
 
         if kill_file.is_file():
             print("Kill file activated. Quitting.")
