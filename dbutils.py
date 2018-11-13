@@ -3,7 +3,7 @@ import sqlite3
 class ServerDatabase:
 
     def __init__(self):
-        self.conn = sqlite3.connect('serverdb')
+        self.conn = sqlite3.connect('/home/pi/discord/serverdb')
         self.conn.execute('pragma foreign_keys=on')
         self.dbcursor = self.conn.cursor()
 
