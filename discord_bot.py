@@ -45,6 +45,7 @@ async def on_ready():
     except Exception as e:
         print(e)
 
+
 # Takes the message and calls the "create_table" method to split things up as
 # required.
 async def table(message):
@@ -54,12 +55,14 @@ async def table(message):
     except Exception as e:
         await client.send_message(message.channel, "Error creating table: " + str(e))
 
+
 # Shows all of the members currently on that particular server.
 async def show_members(message):
     table_text = "MEMBER_NAME,JOINED_ON,STATUS"
     for member in message.server.members:
         table_text += "|{0},{1},{2}".format(member.name, member.joined_at.strftime("%Y-%m-%d %H:%M:%S"), member.status)
     await client.send_message(message.channel, create_table(table_text))
+
 
 # Displays a random number for two players.
 async def battle(message):
@@ -70,6 +73,7 @@ async def battle(message):
         await client.send_message(message.channel, "```Usage: !battle <member>```")
     else:
         await client.send_message(message.channel, thisplayer.mention + " scores " + str(random.randint(1,100)) + ", " + adversary + " scores " + str(random.randint(1,100)))
+
 
 # Shows the PS4/Xbox/PC alias for a given user as set using the !setalias command.
 async def show_aliases(message):
@@ -90,6 +94,7 @@ async def show_aliases(message):
     if removed_users > 0:
         await client.send_message(message.channel, "WARNING: " + str(removed_users) + " user(s) were removed from the table (left/kicked/booted?)")
 
+
 # For the given user and system, set their id in the database.
 async def set_alias(message):
     usage = "```USAGE: !setalias <member> <xbox|ps4|pc> <alias>```"
@@ -109,6 +114,7 @@ async def set_alias(message):
         ddb.update_server_member_system_alias(message.server.id, dmem.id, params[2], params[3])
         await client.send_message(message.channel, "Succesfully set user alias :smiley:")
 
+
 # Remove the user alias from the database from the given system (or 'all' for all systems).
 async def remove_alias(message):
     usage = "```USAGE: !rmalias <member> <xbox|ps4|pc|all>```"
@@ -127,6 +133,7 @@ async def remove_alias(message):
         ddb.remove_server_member_system_alias(message.server.id, dmem.id, params[2])
         await client.send_message(message.channel, "Succesfully removed user :)")
 
+
 @client.event
 async def on_message(message):
     if message.content.startswith("!table "):
@@ -141,12 +148,18 @@ async def on_message(message):
         await set_alias(message)
     elif message.content.startswith('!rmalias'):
         await remove_alias(message)
+    elif message.content == '!general':
+        general_channel = discord.utils.find(lambda c: c.name == 'general', message.server.channels)
+        if general_channel is not None:
+            await client.send_message(general_channel, "Generally, no.")
+
 
 @client.event
 async def on_member_join(member):
-    # await client.send_message(general_chat_channel, "Marshal Mobot welcomes you " + member.mention + ". Now play nice y'hear?")
+    general_channel = discord.utils.find(lambda c: c.name == 'general', member.server.channels)
+    if general_channel is not None:
+        await client.send_message(general_channel, "Marshal Mobot welcomes you " + member.mention + ". Now play nice y'hear?")
     # await client.add_roles(member, (stranger_role))
-    pass
 
 async def maintenance_loop():
     await client.wait_until_ready()
@@ -161,6 +174,7 @@ async def maintenance_loop():
             await client.logout()
             kill_file.unlink() # unlink = delete file
             keep_running = False
+
 
 # start bot
 client.loop.create_task(maintenance_loop())
