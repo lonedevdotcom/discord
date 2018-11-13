@@ -1,4 +1,5 @@
 import texttable
+import urllib.request
 import discord
 import dbutils
 import asyncio
@@ -175,6 +176,14 @@ async def maintenance_loop():
             kill_file.unlink() # unlink = delete file
             keep_running = False
 
+
+try:
+    urllib.request.urlopen('https://www.google.com')
+    print("Internet Connection confirmed. Starting Client...")
+except Exception as ex:
+    print("Unable to connect to the internet. Possibly too soon after server restart? Sleeping for 30 seconds")
+    time.sleep(30)
+    print("OK, trying again. If it fails now... Who knows!")
 
 # start bot
 client.loop.create_task(maintenance_loop())
