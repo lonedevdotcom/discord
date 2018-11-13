@@ -76,9 +76,17 @@ async def battle(message):
         await client.send_message(message.channel, thisplayer.mention + " scores " + str(random.randint(1,100)) + ", " + adversary + " scores " + str(random.randint(1,100)))
 
 
+def get_member_name(server, memid):
+    try:
+        mem = discord.utils.find(lambda m: m.id == memid, server.members)
+        return mem.name
+    except Exception as ex:
+        return ''
+
 # Shows the PS4/Xbox/PC alias for a given user as set using the !setalias command.
 async def show_aliases(message):
     mems = ddb.get_all_server_member_system_aliases(message.server.id)
+    mems.sort(key=lambda mem: get_member_name(message.server,mem[1]).lower())
     table_text = "MEMBER_ID,NICKNAME,SYSTEM,ALIAS"
     removed_users = 0;
     for mem in mems:
