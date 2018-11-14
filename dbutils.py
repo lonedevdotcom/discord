@@ -1,9 +1,10 @@
 import sqlite3
+import discord_config
 
 class ServerDatabase:
 
     def __init__(self):
-        self.conn = sqlite3.connect('/home/pi/discord/serverdb')
+        self.conn = sqlite3.connect(discord_config.SERVER_DB_FILE)
         self.conn.execute('pragma foreign_keys=on')
         self.dbcursor = self.conn.cursor()
 
