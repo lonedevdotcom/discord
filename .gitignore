@@ -1,0 +1,4 @@
+*.log
+*.orig
+archive
+__pycache__
