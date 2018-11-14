@@ -1,0 +1,4 @@
+Type
+	sudo vi etc/rc.local
+
+You'll see it in there :)
