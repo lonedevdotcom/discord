@@ -2,3 +2,4 @@
 *.orig
 archive
 __pycache__
+discord_config.py

@@ -7,25 +7,31 @@ class ServerDatabase:
         self.conn = sqlite3.connect(discord_config.SERVER_DB_FILE)
         self.conn.execute('pragma foreign_keys=on')
         self.dbcursor = self.conn.cursor()
+        self.setup_database_if_new()
+
+    def setup_database_if_new(self):
+            self.dbcursor.execute("select count(*) from sqlite_master where type = 'table' and name = 'server_member_system_alias'")
+            table_exists = self.dbcursor.fetchone()[0] > 0 # Should always be 1 if the server_member_system_alias table exists. If it doesn't, this is a brand new db.
+            if not table_exists:
+                print("New DB. Setting up.")
+                self.setup_database()
 
     def setup_database(self):
-        self.create_server_table()
-
-    def create_server_table(self):
-        self.dbcursor.execute("drop table if exists server")
         self.dbcursor.execute("drop table if exists server_member_system_alias")
         self.dbcursor.execute("drop table if exists system")
 
-        self.dbcursor.execute("create table server (server_id text primary key, last_update_timestamp integer)")
-
+        print("create table 'system'.")
         self.dbcursor.execute("create table system (system_type text primary key)")
+        print("Adding data to 'system' table.")
         self.dbcursor.execute("replace into system (system_type) values (?)", ('ps4',))
         self.dbcursor.execute("replace into system (system_type) values (?)", ('pc',))
         self.dbcursor.execute("replace into system (system_type) values (?)", ('xbox',))
 
+        print("create table 'server_member_system_alias'.")
         self.dbcursor.execute("create table server_member_system_alias (server_id text, member_id text, system_type text, system_alias text not null, primary key (server_id, member_id, system_type), foreign key (system_type) references system(system_type))")
 
         self.conn.commit()
+        print("Database setup complete.")
 
     def update_server_member_system_alias(self, server_id, member_id, system_type, system_alias):
         self.dbcursor.execute("replace into server_member_system_alias (server_id, member_id, system_type, system_alias) values (?, ?, ?, ?)", (server_id, member_id, system_type, system_alias))
@@ -46,12 +52,3 @@ class ServerDatabase:
         else:
             self.dbcursor.execute("select * from server_member_system_alias where server_id = ? and system_type = ? order by system_type", (server_id, system_type))
             return self.dbcursor.fetchall()
-        
-    def update_last_update_timestamp(self, server_id, timestamp):
-        self.dbcursor.execute("replace into server (server_id, last_update_timestamp) values (?, ?)", (server_id, timestamp))
-        self.conn.commit()
-
-    def get_last_update_timestamp(self, server_id):
-        self.dbcursor.execute("select last_update_timestamp from server where server_id = ?", (server_id,))
-        row = self.dbcursor.fetchone()
-        return row[0] if row is not None else None
