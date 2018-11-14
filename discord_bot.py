@@ -1,6 +1,7 @@
 import texttable
 import urllib.request
 import discord
+import discord_config
 import dbutils
 import asyncio
 import random
@@ -12,13 +13,13 @@ import time
 client = discord.Client()
 
 # Set file that will stop this process
-kill_file = pathlib.Path("/home/pi/discord/kill")
+kill_file = pathlib.Path(discord_config.KILL_FILE)
 
 last_server_update = {}
 ddb = dbutils.ServerDatabase()
 
 # token from https://discordapp.com/developers
-token = 'NDk4MTUxNzg3NzgyNDcxNjgy.DppwWA.57Ra07xIQijBpWVwcF3GDX4RsvU'
+token = discord_config.DISCORD_OATH_TOKEN
 
 # Uses the table module to split a string into columns seperated by commas, with
 # rows seperated by the | symbol.
@@ -82,6 +83,13 @@ def get_member_name(server, memid):
         return mem.name
     except Exception as ex:
         return ''
+
+# def find(key, iterable):
+#     for i in iterable:
+#         if(key(i)):
+#             return i
+#     return None
+
 
 # Shows the PS4/Xbox/PC alias for a given user as set using the !setalias command.
 async def show_aliases(message):
