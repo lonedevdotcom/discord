@@ -120,14 +120,16 @@ async def set_alias(message):
         await client.send_message(message.channel, "Sorry " + message.author.mention + ", only administrators can do this :frowning:")
     elif len(params) != 4:
         await client.send_message(message.channel, usage)
-    elif discord.utils.find(lambda m: m.mention == params[1], message.server.members) is None:
-        await client.send_message(message.channel, "Could not find user " + params[1])
-        await client.send_message(message.channel, usage)
+    # elif discord.utils.find(lambda m: m.mention == params[1], message.server.members) is None:
     elif params[2] not in ('ps4', 'xbox', 'pc'):
         await client.send_message(message.channel, "Invalid system '" + params[2] + "'. system must be xbox, ps4 or pc")
         await client.send_message(message.channel, usage)
+    elif len(message.mentions) != 1:
+        await client.send_message(message.channel, "You must state the user in the first parameter.")
+        await client.send_message(message.channel, usage)
     else:
-        dmem = discord.utils.find(lambda m: m.mention == params[1], message.server.members)
+        # dmem = discord.utils.find(lambda m: m.mention == params[1], message.server.members)
+        dmem = message.mentions[0]
         ddb.update_server_member_system_alias(message.server.id, dmem.id, params[2], params[3])
         await client.send_message(message.channel, "Succesfully set user alias :smiley:")
 
