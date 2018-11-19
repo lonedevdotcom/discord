@@ -1,16 +1,23 @@
 import texttable
 import dbutils
+import time
 
 class GameFour():
+    STATUSES = ('Start Timed Out', 'Player 1 to play', 'Player 2 to play', 'GAME OVER: Player 1 wins!', 'GAME OVER: Player 2 wins!', 'GAME OVER: Draw')
 
-    def __init__(self):
-        self.dbserver = dbutils.ServerDatabase()
+    def __init__(self, dbref):
+        self.dbserver = dbref
+
 
     def new_game(self, server_id, channel_id, player1_id, player2_id):
+        if (player1_id == player2_id):
+            raise Exception("Player id's are identical. Are you trying to play against yourself?")
         return self.dbserver.new_game_four(server_id, channel_id, player1_id, player2_id)
+
 
     def get_game(self, server_id, game_id):
         return self.dbserver.get_game_four(server_id, game_id)
+
 
     def display_board(self, server_id, game_id):
         board_table = texttable.Texttable()
@@ -26,6 +33,13 @@ class GameFour():
         board_table.add_row((1,2,3,4,5,6,7))
 
         return board_table.draw()
+
+    def end_inactive_games(self, older_than_seconds):
+        older_time = int(time.time()) - older_than_seconds
+        for inactive_game in self.dbserver.get_inactive_game_four_games(older_time):
+            inactive_game['status'] = 0 
+            # TO-DO: FINISH THIS!
+
 
     def get_column_drop_position(self, server_id, game_id, column):
         if column < 0 or column > 6:
@@ -135,11 +149,14 @@ class GameFour():
         # print("Not a number. Must be between a number between 1 and 7")
     # except Exception as ex:
         # print(ex)
-g4 = GameFour()
-g4game = g4.new_game('10000', '20000', '30001', '30002')
-g4.drop_chip('10000', g4game['game_id'], 4)
-print(g4.find_active_player_game('10000', '30002'))
-g4.update_status('10000', g4game['game_id'], 0)
+
+
+
+# g4 = GameFour()
+# g4game = g4.new_game('10000', '20000', '30001', '30002')
+# g4.drop_chip('10000', g4game['game_id'], 4)
+# print(g4.find_active_player_game('10000', '30002'))
+# g4.update_status('10000', g4game['game_id'], 0)
 # game = g4.get_game('10000', game_id)
 # g4.drop_chip('10000', game['game_id'], 4)
 # print(game['game_id'])

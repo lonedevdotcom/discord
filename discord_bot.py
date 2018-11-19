@@ -8,6 +8,7 @@ import random
 import pathlib
 import datetime
 import time
+import game_four
 
 # create discord client
 client = discord.Client()
@@ -17,6 +18,7 @@ kill_file = pathlib.Path(discord_config.KILL_FILE)
 
 last_server_update = {}
 ddb = dbutils.ServerDatabase()
+g4 = game_four.GameFour(ddb)
 
 # token from https://discordapp.com/developers
 token = discord_config.DISCORD_OATH_TOKEN
@@ -60,9 +62,9 @@ async def table(message):
 
 # Shows all of the members currently on that particular server.
 async def show_members(message):
-    table_text = "MEMBER_NAME,JOINED_ON,STATUS"
+    table_text = "MEMBER_NAME,MEMBER_ID,JOINED_ON,STATUS"
     for member in message.server.members:
-        table_text += "|{0},{1},{2}".format(member.name, member.joined_at.strftime("%Y-%m-%d %H:%M:%S"), member.status)
+        table_text += "|{0},{1},{2},{3}".format(member.name, member.id, member.joined_at.strftime("%Y-%m-%d %H:%M:%S"), member.status)
     await client.send_message(message.channel, create_table(table_text))
 
 
@@ -153,6 +155,38 @@ async def remove_alias(message):
         await client.send_message(message.channel, "Succesfully removed user :)")
 
 
+async def new_game_four(message):
+    if len(message.mentions) != 1:
+        await client.send_message(message.channel, "You need to add 1 person to play with " + message.author.mention)
+    else:
+        try:
+            g4game = g4.new_game(message.server.id, message.channel.id, message.mentions[0].id, message.author.id)
+            await client.send_message(message.channel, "Game " + str(g4game['game_id']) + " created")
+            await show_game_four_board(g4game['game_id'], message)
+        except Exception as ex:
+            await client.send_message(message.channel, str(ex))
+
+
+async def maybe_play(message):
+    g4game = g4.find_active_player_game(message.server.id, message.author.id)
+    if g4game is not None:
+        try:
+            # Note that I'm casting the message.content to an int, so I'm assuming that's all been done!
+            g4.drop_chip(message.server.id, g4game['game_id'], int(message.content)-1)
+            await show_game_four_board(g4game['game_id'], message)
+        except Exception as ex:
+            await client.send_message(message.channel, "EXCEPTION: " + str(ex)) 
+
+
+async def show_game_four_board(game_id, message):
+    g4game = g4.get_game(message.server.id, game_id)
+    new_board = g4.display_board(message.server.id, g4game['game_id'])
+    # I do NOT know why I have to wrap the player1_id and player2_id in strings. They're stored as strings in the database.
+    player1 = discord.utils.find(lambda m: m.id == str(g4game['player1_id']), message.server.members)
+    player2 = discord.utils.find(lambda m: m.id == str(g4game['player2_id']), message.server.members)
+    status_text = game_four.GameFour.STATUSES[g4game['status']]
+    await client.send_message(message.channel, "```{0}\nPlayer 1 (X): {1}\nPlayer 2 (O): {2}\n{3}```".format(new_board, player1.name, player2.name, status_text))
+
 @client.event
 async def on_message(message):
     if message.content.startswith("!table "):
@@ -167,10 +201,10 @@ async def on_message(message):
         await set_alias(message)
     elif message.content.startswith('!rmalias'):
         await remove_alias(message)
-    elif message.content == '!general':
-        general_channel = discord.utils.find(lambda c: c.name == 'general', message.server.channels)
-        if general_channel is not None:
-            await client.send_message(general_channel, "Generally, no.")
+    elif message.content.startswith('!gamefour '):
+        await new_game_four(message)
+    elif len(message.content) == 1 and message.content.isdigit():
+        await maybe_play(message)
 
 
 @client.event
@@ -187,6 +221,7 @@ async def maintenance_loop():
     while keep_running:
         await asyncio.sleep(60)
         print("Maintenance run " + str(datetime.datetime.now()), flush=True)
+        # g4.end_inactive_games(100)
 
         if kill_file.is_file():
             print("Kill file activated. Quitting.")

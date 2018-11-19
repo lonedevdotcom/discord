@@ -68,6 +68,17 @@ class ServerDatabase:
             return self.get_game_four(server_id, game[0])
         return None
 
+
+    def get_inactive_game_four_games(self, older_than_seconds):
+        print(older_than_seconds)
+        self.dbcursor.execute("select server_id, game_id, channel_id, player1_id, player2_id, board, status, game_created_time, last_update_time from game_four where status in (1,2) and last_update_time < ?", (older_than_seconds,))
+        game_fours = []
+        for row in self.dbcursor.fetchall():
+            game_four = self.get_game_four(row[0], row[1])
+            game_fours.append(game_four)
+        return game_fours
+
+
     def get_game_four(self, server_id, game_id):
         self.dbcursor.execute("select server_id, game_id, channel_id, player1_id, player2_id, board, status, game_created_time, last_update_time from game_four where server_id = ? and game_id = ?", (server_id, game_id))
         game = self.dbcursor.fetchone()
