@@ -70,7 +70,6 @@ class ServerDatabase:
 
 
     def get_inactive_game_four_games(self, older_than_seconds):
-        print(older_than_seconds)
         self.dbcursor.execute("select server_id, game_id, channel_id, player1_id, player2_id, board, status, game_created_time, last_update_time from game_four where status in (1,2) and last_update_time < ?", (older_than_seconds,))
         game_fours = []
         for row in self.dbcursor.fetchall():

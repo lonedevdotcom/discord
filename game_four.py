@@ -36,9 +36,21 @@ class GameFour():
 
     def end_inactive_games(self, older_than_seconds):
         older_time = int(time.time()) - older_than_seconds
+        terminated_games = []
         for inactive_game in self.dbserver.get_inactive_game_four_games(older_time):
-            inactive_game['status'] = 0 
-            # TO-DO: FINISH THIS!
+            if not 'X' in inactive_game['board']:
+                # Game was never started.
+                self.update_status(inactive_game['server_id'], inactive_game['game_id'], 0)
+                terminated_games.append((inactive_game['server_id'], inactive_game['game_id'], inactive_game['channel_id'], "GAME OVER: Timed out before started."))
+            elif inactive_game['status'] == 1:
+                # Player 1 timed out. Player 2 wins!
+                self.update_status(inactive_game['server_id'], inactive_game['game_id'], 4)
+                terminated_games.append((inactive_game['server_id'], inactive_game['game_id'], inactive_game['channel_id'], "GAME OVER: Player 1 timed out. Player 2 wins!"))
+            elif inactive_game['status'] == 2:
+                # Player 2 timed out. Player 1 wins!
+                self.update_status(inactive_game['server_id'], inactive_game['game_id'], 3)
+                terminated_games.append((inactive_game['server_id'], inactive_game['game_id'], inactive_game['channel_id'], "GAME OVER: Player 2 timed out. Player 1 wins!"))
+        return terminated_games
 
 
     def get_column_drop_position(self, server_id, game_id, column):

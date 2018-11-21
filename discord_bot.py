@@ -158,6 +158,8 @@ async def remove_alias(message):
 async def new_game_four(message):
     if len(message.mentions) != 1:
         await client.send_message(message.channel, "You need to add 1 person to play with " + message.author.mention)
+    elif message.mentions[0].bot:
+        await client.send_message(message.channel, "You can't play against a bot " + message.author.mention + ". They'd never respond!")
     else:
         try:
             g4game = g4.new_game(message.server.id, message.channel.id, message.mentions[0].id, message.author.id)
@@ -214,6 +216,14 @@ async def on_member_join(member):
         await client.send_message(general_channel, "Marshal Mobot welcomes you " + member.mention + ". Now play nice y'hear?")
     # await client.add_roles(member, (stranger_role))
 
+
+async def end_inactive_games():
+    terminated_games = g4.end_inactive_games(100)
+    for terminated_game in terminated_games:
+        game_server = discord.utils.find(lambda s: s.id == str(terminated_game[0]), client.servers)
+        game_channel = discord.utils.find(lambda c: c.id == str(terminated_game[2]), game_server.channels)
+        await client.send_message(game_channel, terminated_game[3])
+
 async def maintenance_loop():
     await client.wait_until_ready()
     keep_running = True
@@ -221,7 +231,6 @@ async def maintenance_loop():
     while keep_running:
         await asyncio.sleep(60)
         print("Maintenance run " + str(datetime.datetime.now()), flush=True)
-        # g4.end_inactive_games(100)
 
         if kill_file.is_file():
             print("Kill file activated. Quitting.")
