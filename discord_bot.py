@@ -218,11 +218,12 @@ async def on_member_join(member):
 
 
 async def end_inactive_games():
-    terminated_games = g4.end_inactive_games(100)
+    terminated_games = g4.end_inactive_games(180)
     for terminated_game in terminated_games:
         game_server = discord.utils.find(lambda s: s.id == str(terminated_game[0]), client.servers)
         game_channel = discord.utils.find(lambda c: c.id == str(terminated_game[2]), game_server.channels)
         await client.send_message(game_channel, terminated_game[3])
+
 
 async def maintenance_loop():
     await client.wait_until_ready()
@@ -231,6 +232,8 @@ async def maintenance_loop():
     while keep_running:
         await asyncio.sleep(60)
         print("Maintenance run " + str(datetime.datetime.now()), flush=True)
+
+        await end_inactive_games()
 
         if kill_file.is_file():
             print("Kill file activated. Quitting.")
