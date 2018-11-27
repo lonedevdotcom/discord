@@ -187,7 +187,9 @@ async def show_game_four_board(game_id, message):
     player1 = discord.utils.find(lambda m: m.id == str(g4game['player1_id']), message.server.members)
     player2 = discord.utils.find(lambda m: m.id == str(g4game['player2_id']), message.server.members)
     status_text = game_four.GameFour.STATUSES[g4game['status']]
-    await client.send_message(message.channel, "```{0}\nPlayer 1 (X): {1}\nPlayer 2 (O): {2}\n{3}```".format(new_board, player1.name, player2.name, status_text))
+    # await client.send_message(message.channel, "```{0}\nPlayer 1 (X): {1}\nPlayer 2 (O): {2}\n{3}```".format(new_board, player1.name, player2.name, status_text))
+    image_file = g4.draw_board_image(g4game['board'], player1.name, player2.name, status_text)
+    await client.send_file(message.channel, image_file)
 
 @client.event
 async def on_message(message):
@@ -205,6 +207,8 @@ async def on_message(message):
         await remove_alias(message)
     elif message.content.startswith('!gamefour '):
         await new_game_four(message)
+    elif message.content.startswith('!img'):
+        await client.send_file(message.channel, 'images/img01.png')
     elif len(message.content) == 1 and message.content.isdigit():
         await maybe_play(message)
 

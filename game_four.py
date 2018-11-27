@@ -1,6 +1,7 @@
 import texttable
 import dbutils
 import time
+from PIL import Image, ImageDraw, ImageFont
 
 class GameFour():
     STATUSES = ('Start Timed Out', 'Player 1 to play', 'Player 2 to play', 'GAME OVER: Player 1 wins!', 'GAME OVER: Player 2 wins!', 'GAME OVER: Draw')
@@ -131,45 +132,42 @@ class GameFour():
 
         return False
 
-# tt = texttable.Texttable()
-# for i in range(0,6):
-    # tt.add_row((i*7, i*7+1, i*7+2, i*7+3, i*7+4, i*7+5, i*7+6))
-# print(tt.draw())
 
-# board_values = [' '] * 42 # setup a 42 cell string (6x7 grid)
-# player_chip = 'X'
-# game_over = False
-# 
-# display_board("".join(board_values))
-# 
-# # Loop round while there are still spaces(empty slots) on the board.
-# while not game_over:
-    # try:
-        # column_drop = int(input("which column '" + player_chip + "'? "))
-        # column_drop_index = column_drop - 1 # Python as a zero-based indexer, whereas humans prefer to start at 1 :)
-        # position = get_column_drop_position(column_drop_index)
-        # board_values[position] = player_chip
-        # display_board("".join(board_values))
-        # if check_for_winner(board_values, player_chip):
-            # print(player_chip + " wins!")
-            # game_over = True
-        # elif not ' ' in board_values:
-            # print("Draw!")
-            # game_over = True
-        # player_chip = 'X' if player_chip == 'O' else 'O'
-    # except ValueError as ve:
-        # print("Not a number. Must be between a number between 1 and 7")
-    # except Exception as ex:
-        # print(ex)
+    def draw_board_image(self, board, player1_name, player2_name, status_text, ellipse_size=30, ellipse_padding=4, font_size=24):
+        save_file = 'images/img01.png'
+        board_font = ImageFont.truetype('/usr/share/fonts/truetype/freefont/FreeSans.ttf', font_size)
+        box_size = ellipse_size + (ellipse_padding * 2)
+        text_space = int(font_size * 4 * 1.2) # 4 rows of text. 1.20 is 20% either side of the text (I hope)
+        img = Image.new('RGB', (box_size*7, box_size*6+text_space), color = 'blue')
+        draw = ImageDraw.Draw(img)
+        row1_y = box_size*6
+        row2_y = box_size*6 + (font_size * 1.20)
+        row3_y = box_size*6 + (font_size * 2 * 1.20)
+        row4_y = box_size*6 + (font_size * 3 * 1.20)
 
+        for column in range(0,7):
+            for row in range(0,6):
+                board_index = row * 7 + column
 
+                fill_color = '#cdc9c9'
+                if board[board_index] == 'X':
+                    fill_color = 'red'
+                elif board[board_index] == 'O':
+                    fill_color = 'yellow'
 
-# g4 = GameFour()
-# g4game = g4.new_game('10000', '20000', '30001', '30002')
-# g4.drop_chip('10000', g4game['game_id'], 4)
-# print(g4.find_active_player_game('10000', '30002'))
-# g4.update_status('10000', g4game['game_id'], 0)
-# game = g4.get_game('10000', game_id)
-# g4.drop_chip('10000', game['game_id'], 4)
-# print(game['game_id'])
-# print(g4.display_board('10000', game['game_id']))
+                top_left_x = column * box_size + ellipse_padding
+                top_left_y = row * box_size + ellipse_padding
+                bottom_left_x = ((column+1) * box_size) - ellipse_padding
+                bottom_left_y = ((row+1) * box_size) - ellipse_padding
+                draw.ellipse((top_left_x, top_left_y, bottom_left_x, bottom_left_y), fill=fill_color)
+            draw.text((column*box_size+(box_size/2)-8, row1_y), str(column+1), font=board_font)
+        draw.ellipse((0, row2_y, font_size, row2_y+font_size), fill='red')
+        draw.text((font_size+5, row2_y), player1_name, font=board_font)
+    
+        draw.ellipse((0, row3_y, font_size, row3_y+font_size), fill='yellow')
+        draw.text((font_size+5, row3_y), player2_name, font=board_font)
+
+        draw.text((0, row4_y), status_text, font=board_font)
+        img.save(save_file)
+        return save_file
+
