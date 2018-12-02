@@ -30,7 +30,22 @@ def create_table(table_text):
         table = texttable.Texttable(0)
         for row in table_text.split("|"):
             table.add_row(row.split(","))
-        return "```" + table.draw() + "```"
+
+        # Not massively happy about this, but Discord has a 2,000 character
+        # limit per message. So I will split up the table into a list, then 
+        # rejoin it into lists of 20 rows at a time. That way, separate smaller
+        # messages can be sent in quick succession.
+        split_table = table.draw().splitlines()
+        n = 20 # split into 20 rows at a time.
+        split_table_groups = [ split_table[i:i+n] for i in range(0, len(split_table), n) ]
+
+        # They're now in groups of n rows, but we need to re-add the \n that
+        # splitlines removed earlier.
+        table_strings = []
+        for table_group in split_table_groups:
+            table_strings.append("\n".join(table_group))
+
+        return table_strings
     except Exception as e:
         raise(e)
 
@@ -48,24 +63,6 @@ async def on_ready():
             # last_server_update[server.id] = int(time.time())
     except Exception as e:
         print(e)
-
-
-# Takes the message and calls the "create_table" method to split things up as
-# required.
-async def table(message):
-    try:
-        table_text = message.content[7:]
-        await client.send_message(message.channel, create_table(table_text))
-    except Exception as e:
-        await client.send_message(message.channel, "Error creating table: " + str(e))
-
-
-# Shows all of the members currently on that particular server.
-async def show_members(message):
-    table_text = "MEMBER_NAME,MEMBER_ID,JOINED_ON,STATUS"
-    for member in message.server.members:
-        table_text += "|{0},{1},{2},{3}".format(member.name, member.id, member.joined_at.strftime("%Y-%m-%d %H:%M:%S"), member.status)
-    await client.send_message(message.channel, create_table(table_text))
 
 
 # Displays a random number for two players.
@@ -86,18 +83,22 @@ def get_member_name(server, memid):
     except Exception as ex:
         return ''
 
-# def find(key, iterable):
-#     for i in iterable:
-#         if(key(i)):
-#             return i
-#     return None
+
+def get_member_nickname(server, memid):
+    try:
+        mem = discord.utils.find(lambda m: m.id == memid, server.members)
+        return mem.nick if mem.nick is not None else ''
+    except Exception as ex:
+        return ''
 
 
 # Shows the PS4/Xbox/PC alias for a given user as set using the !setalias command.
 async def show_aliases(message):
-    mems = ddb.get_all_server_member_system_aliases(message.server.id)
-    mems.sort(key=lambda mem: get_member_name(message.server,mem[1]).lower())
-    table_text = "MEMBER_ID,NICKNAME,SYSTEM,ALIAS"
+    params = message.content.split()
+    systype = params[1] if len(params) == 2 else 'all'
+    mems = ddb.get_all_server_member_system_aliases(message.server.id, system_type=systype)
+    mems.sort(key=lambda mem: get_member_nickname(message.server,mem[1]).lower())
+    table_text = "MEMBER_ID,NICKNAME,SYSTEM,ALIAS" if systype == 'all' else "MEMBER_ID,NICKNAME,ALIAS"
     removed_users = 0;
     for mem in mems:
         dmem = discord.utils.find(lambda m: m.id == mem[1], message.server.members)
@@ -108,8 +109,19 @@ async def show_aliases(message):
             ddb.remove_server_member_system_alias(message.server.id, mem[1], 'all')
             removed_users += 1
         else:
-            table_text += "|{0},{1},{2},{3}".format(dmem.name, dmem.nick, mem[2], mem[3])
-    await client.send_message(message.channel, create_table(table_text))
+            if systype == 'all':
+                table_text += "|{0},{1},{2},{3}".format(dmem.name, dmem.nick, mem[2], mem[3])
+            else:
+                table_text += "|{0},{1},{2}".format(dmem.name, dmem.nick, mem[3])
+
+    # create_table returns a list of seperate strings to avoid the 2,000 character limit.
+    table_strings = create_table(table_text)
+
+    await client.send_message(message.channel, "```System aliases (" + systype + ")```")
+
+    for table_string in table_strings:
+        await client.send_message(message.channel, "```" + table_string + "```")
+
     if removed_users > 0:
         await client.send_message(message.channel, "WARNING: " + str(removed_users) + " user(s) were removed from the table (left/kicked/booted?)")
 
@@ -193,13 +205,9 @@ async def show_game_four_board(game_id, message):
 
 @client.event
 async def on_message(message):
-    if message.content.startswith("!table "):
-        await table(message)
-    elif message.content == "!members" or message.content == "!posse":
-        await show_members(message)
-    elif message.content.startswith("!battle "):
+    if message.content.startswith("!battle "):
         await battle(message)
-    elif message.content == '!aliases':
+    elif message.content.startswith('!aliases') or message.content.startswith('!posse'):
         await show_aliases(message)
     elif message.content.startswith('!setalias'):
         await set_alias(message)
@@ -207,8 +215,6 @@ async def on_message(message):
         await remove_alias(message)
     elif message.content.startswith('!gamefour '):
         await new_game_four(message)
-    elif message.content.startswith('!img'):
-        await client.send_file(message.channel, 'images/img01.png')
     elif len(message.content) == 1 and message.content.isdigit():
         await maybe_play(message)
 
@@ -218,7 +224,8 @@ async def on_member_join(member):
     general_channel = discord.utils.find(lambda c: c.name == 'general', member.server.channels)
     if general_channel is not None:
         await client.send_message(general_channel, "Marshal Mobot welcomes you " + member.mention + ". Now play nice y'hear?")
-    # await client.add_roles(member, (stranger_role))
+        stranger_role = discord.utils.find(lambda r: r.name == 'Stranger', member.server.roles)
+        await client.add_roles(member, (stranger_role))
 
 
 async def end_inactive_games():
